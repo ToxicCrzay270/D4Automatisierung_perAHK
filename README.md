@@ -63,7 +63,7 @@ Die Erkennung ist ein Helligkeitsvergleich eines einzelnen Pixels. Sie prüft we
 
 ## Offline-Prüfung
 
-Der Prüfer unter `Tests/Test-AhkScripts.ps1` prüft die Syntax aller drei Skripte mit AutoHotkey v2 und testet die Klickfolgen mit simulierten Maus-, Fenster- und Pixelzugriffen. Dabei werden keine Spielklicks ausgeführt.
+Der Prüfer unter `Tests/Test-AhkScripts.ps1` läuft unter Windows PowerShell 5.1 oder PowerShell 7. Er prüft die Syntax aller drei Skripte mit AutoHotkey v2 und testet die Klickfolgen mit simulierten Maus-, Fenster- und Pixelzugriffen. Dabei werden keine Spielklicks ausgeführt.
 
 ```powershell
 .\Tests\Test-AhkScripts.ps1 -AutoHotkeyPath 'C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe'

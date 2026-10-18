@@ -30,18 +30,28 @@ $utf8 = [Text.UTF8Encoding]::new($false)
 
 function Invoke-AhkCheck {
     param([string]$ScriptPath, [switch]$Validate)
-    $logBase = Join-Path $runDirectory ([guid]::NewGuid().ToString('N'))
     $arguments = '/ErrorStdOut=UTF-8 ' + $(if ($Validate) { '/Validate ' }) + '"' + $ScriptPath + '"'
-    $process = Start-Process -FilePath $ahkExecutable -ArgumentList $arguments -WindowStyle Hidden `
-        -RedirectStandardOutput ($logBase + '.out') -RedirectStandardError ($logBase + '.err') -PassThru
+    # Own the Process handle: PS5.1 Start-Process may lose ExitCode for short /Validate runs.
+    $process = [Diagnostics.Process]::new()
+    $process.StartInfo.FileName = $ahkExecutable
+    $process.StartInfo.Arguments = $arguments
+    $process.StartInfo.UseShellExecute = $false
+    $process.StartInfo.CreateNoWindow = $true
+    $process.StartInfo.RedirectStandardOutput = $true
+    $process.StartInfo.RedirectStandardError = $true
+    $process.StartInfo.StandardOutputEncoding = $utf8
+    $process.StartInfo.StandardErrorEncoding = $utf8
     try {
+        $null = $process.Start()
+        $outputTask = $process.StandardOutput.ReadToEndAsync()
+        $errorTask = $process.StandardError.ReadToEndAsync()
         if (-not $process.WaitForExit(20000)) {
             $process.Kill()
             $process.WaitForExit()
             throw "AHK check timed out: $ScriptPath"
         }
-        $output = [IO.File]::ReadAllText($logBase + '.out', $utf8).Trim()
-        $errors = [IO.File]::ReadAllText($logBase + '.err', $utf8).Trim()
+        $output = $outputTask.GetAwaiter().GetResult().Trim()
+        $errors = $errorTask.GetAwaiter().GetResult().Trim()
         if ($process.ExitCode -ne 0) {
             throw "AHK check failed ($($process.ExitCode)): $ScriptPath`n$output`n$errors"
         }
