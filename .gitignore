@@ -1,0 +1,15 @@
+# Optional portable AutoHotkey runtime; install separately.
+.tools/
+
+# Local checks, logs and editor files.
+.worktmp/
+backups/
+*.log
+*.tmp
+*.bak
+*.zip
+*.exe
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

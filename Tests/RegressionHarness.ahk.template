@@ -1,0 +1,276 @@
+#Requires AutoHotkey v2.0
+#NoTrayIcon
+Test := NeuerTest()
+Test.Startup := true
+StartMeldungen := 0
+StatusAnzeigen := 0
+StartTasten := []
+MockFehler := []
+ErwarteterHinweis := "Bitte erst zur Occultistin  gehen das gewünschte item rein legen und so nach Suchen das der gewünschte aspect ganz oben angezeigt wird."
+try
+{
+@@STARTUP@@
+    Pruefe(StartHinweisBestaetigt, "Startfreigabe fehlt.")
+    Pruefe(StartMeldungen = 1 && StatusAnzeigen = 1, "Startdialog/Status nicht genau einmal.")
+    Pruefe(Verbinde(StartTasten) = "F5|F6", "Freigabe ohne vorheriges KeyWait F5/F6.")
+    Regression()
+    Pruefe(MockFehler.Length = 0, MockFehler.Length ? MockFehler[1] : "Mockfehler.")
+    Pruefe(StartMeldungen = 1, "Startdialog im Ablauf wiederholt.")
+    FileAppend "PASS offline: " VersionsName "; startup, F5/F6 default/busy, pixel4/5/boundaries, click targets, 1000ms, focus, limits1/33.`n", "*"
+    ExitApp 0
+}
+catch Error as Fehler
+{
+    FileAppend Fehler.Message "`n", "**"
+    ExitApp 1
+}
+
+@@FUNCTIONS@@
+
+Regression()
+{
+    global Test, AblaufAktiv, LetzteF6Anzahl, Positionen, OkkultistinPositionen
+    global CubePositionen, CubePosition1Bei5, CubeVariantenPixel, CubeWartezeitMs, PauseNachKlickMs, PauseVorKlickMs
+    ResetTest([{Result: "Cancel", Value: ""}])
+    StarteAblauf("F5")
+    Pruefe(Test.Defaults[1] = "1" && !AblaufAktiv && !Test.Klicks.Length, "Initialer F5-Default/Cancel falsch.")
+
+    ResetTest([{Result: "OK", Value: "34"}, {Result: "OK", Value: "3"}])
+    Test.ProbeDialog := true
+    StarteAblauf("F6")
+    Pruefe(Verbinde(Test.Defaults) = "|", "F6-Dialog soll ohne Default bleiben.")
+    Pruefe(LetzteF6Anzahl = 3 && !AblaufAktiv, "F6-Merkwert oder Freigabe falsch.")
+    Pruefe(Verbinde(Test.Klicks) = ErwarteteKlicks(3, "F6"), "F6-Klickfolge veraendert.")
+    Pruefe(Test.Pixel.Length = 0 && Test.LangePausen = 0 && Test.Meldungen.Length = 1, "F6-Validierung/Pixel/Pause falsch.")
+
+    ResetTest([{Result: "OK", Value: "2"}])
+    Test.Farben := [0xD8D5CF, 0x0E0C0A]
+    Test.ProbeKlick := true
+    StarteAblauf("F5")
+    Pruefe(Test.Defaults[1] = "3" && LetzteF6Anzahl = 3 && !AblaufAktiv, "F5-Default/Override/Freigabe falsch.")
+    Pruefe(Verbinde(Test.Klicks) = ErwarteteKlicks(2, "F5", [4, 5]), "Pixelwechsel4/5 oder Klickziele falsch.")
+    PixelText := CubeVariantenPixel.x "," CubeVariantenPixel.y
+    Pruefe(Verbinde(Test.Pixel) = PixelText "|" PixelText, "Pixel nicht neu pro Item gelesen.")
+    Pruefe(Test.LangePausen = 2 && Test.Meldungen.Length = 0, "Cube-Pause oder Ablauf fehlgeschlagen.")
+    Punkt := CubePositionen[3]
+    Pruefe(InStr(Verbinde(Test.Events), "move@" Punkt.x "," Punkt.y "|sleep@1000|click@Left@" Punkt.x "," Punkt.y), "1000ms nicht zwischen Cube3-Move und Click.")
+    Pruefe(InStr(Verbinde(Test.Events), "click@Right@" Positionen[1].x "," Positionen[1].y "|sleep@" PauseNachKlickMs "|pixel@" PixelText "|move@" CubePositionen[1].x "," CubePositionen[1].y), "Pixel nicht nach Item-Rechtsklick und vor Cube1.")
+
+    ResetTest([{Result: "OK", Value: "2"}])
+    Test.Farben := [0x0E0C0A, 0xD8D5CF]
+    StarteAblauf("F5")
+    Pruefe(Verbinde(Test.Klicks) = ErwarteteKlicks(2, "F5", [5, 4]) && !Test.Meldungen.Length, "Pixelwechsel5/4 falsch.")
+
+    for Ungueltig in ["0", "34", "1.5", "+2", "0x10", ""]
+    {
+        ResetTest([{Result: "OK", Value: Ungueltig}, {Result: "Cancel", Value: ""}])
+        StarteAblauf("F6")
+        Pruefe(LetzteF6Anzahl = 3 && !AblaufAktiv && !Test.Klicks.Length, "Ungueltiges F6 aendert Merkwert/klickt.")
+    }
+    ResetTest([{Result: "Cancel", Value: "33"}])
+    StarteAblauf("F5")
+    Pruefe(LetzteF6Anzahl = 3 && !AblaufAktiv && !Test.Klicks.Length, "F5-Cancel hat Nebenwirkungen.")
+
+    ResetTest([{Result: "OK", Value: "2"}])
+    Test.Farben := [0x808080]
+    StarteAblauf("F5")
+    Pruefe(Test.Klicks.Length = 1 && Test.Meldungen.Length = 1 && !AblaufAktiv, "Zwischenfarbe stoppt nicht vor Cube1.")
+    ResetTest([{Result: "OK", Value: "1"}])
+    Test.PixelFehler := true
+    StarteAblauf("F5")
+    Pruefe(Test.Klicks.Length = 1 && Test.Meldungen.Length = 1 && !AblaufAktiv, "Pixel-Lesefehler stoppt nicht.")
+    ResetTest([{Result: "OK", Value: "1"}])
+    Test.Fokusverlust := true
+    StarteAblauf("F5")
+    Pruefe(Test.Klicks.Length = 3 && Test.Meldungen.Length = 1 && !AblaufAktiv, "Fokusverlust waehrend1000ms verhindert Cube3-Klick nicht.")
+
+    for Paar in [["0xD8D5CF", 4], ["0x0E0C0A", 5], [0xA0A0A0, 4], [0x3C3C3C, 5]]
+        Pruefe(CubeVarianteAusFarbe(Paar[1]) = Paar[2], "RGB-Klassifikation/Grenze falsch.")
+    for Farbe in [0x9F9F9F, 0x3D3D3D, 0xA09FA0, 0x3C3D3C, 0xFF0000]
+        ErwarteFehler(() => CubeVarianteAusFarbe(Farbe))
+    for Anzahl in [0, 34, 1.5]
+        ErwarteFehler(() => ErstelleKlickfolge(Anzahl, Positionen, OkkultistinPositionen))
+    Pruefe(ErstelleKlickfolge(1, Positionen, OkkultistinPositionen).Length = 5, "F6-Grenze1 falsch.")
+    Pruefe(ErstelleKlickfolge(33, Positionen, OkkultistinPositionen).Length = 165, "F6-Grenze33 falsch.")
+    Folge := ErstelleKlickfolge(33, Positionen, CubePositionen, "Cube", CubeWartezeitMs)
+    Pruefe(Folge.Length = 132, "F5-Grenze33 falsch.")
+    for Index, Schritt in Folge
+    {
+        Pruefe(Schritt.HasOwnProp("CubeVariantePruefen") = (Mod(Index, 4) = 2), "Pixelmarker nicht ausschliesslich an Cube1 pro Item.")
+        Pruefe(Schritt.HasOwnProp("WarteVorKlickMs") = (Mod(Index, 4) = 0), "Lange Pause am falschen Schritt.")
+        if Schritt.HasOwnProp("WarteVorKlickMs")
+            Pruefe(Schritt.WarteVorKlickMs = 1000, "Cube3-Pause nicht1000ms.")
+    }
+    ErwarteFehler(() => ErstelleKlickfolge(1, Positionen, [CubePositionen[1], {x: "", y: 10}, CubePositionen[3]], "Cube", 1000))
+}
+
+ErwarteteKlicks(Anzahl, Modus, Varianten := unset)
+{
+    global Positionen, OkkultistinPositionen, CubePositionen, CubePosition1Bei5
+    Klicks := []
+    Loop Anzahl
+    {
+        ItemIndex := A_Index
+        Klicks.Push("Right@" Positionen[ItemIndex].x "," Positionen[ItemIndex].y)
+        for Index, Punkt in (Modus = "F6" ? OkkultistinPositionen : CubePositionen)
+        {
+            if Modus = "F5" && Index = 1 && IsSet(Varianten) && Varianten[ItemIndex] = 5
+                Punkt := CubePosition1Bei5
+            Klicks.Push("Left@" Punkt.x "," Punkt.y)
+        }
+    }
+    return Verbinde(Klicks)
+}
+
+NeuerTest(Eingaben := unset)
+{
+    return {Startup: false, Queue: IsSet(Eingaben) ? Eingaben : [], Defaults: [], Klicks: [], Events: [], Meldungen: [], Pixel: [], Farben: [], LangePausen: 0, Fokus: 42, Kritisch: false, ProbeDialog: false, ProbeKlick: false, Fokusverlust: false, PixelFehler: false, X: 0, Y: 0}
+}
+ResetTest(Eingaben)
+{
+    global Test
+    Test := NeuerTest(Eingaben)
+}
+Pruefe(Bedingung, Text)
+{
+    if !Bedingung
+        throw Error(Text)
+}
+PruefeMock(Bedingung, Text)
+{
+    global MockFehler
+    if !Bedingung
+    {
+        MockFehler.Push(Text)
+        throw Error(Text)
+    }
+}
+ErwarteFehler(Aktion)
+{
+    Abgewiesen := false
+    try Aktion()
+    catch Error
+        Abgewiesen := true
+    Pruefe(Abgewiesen, "Ungueltiger Wert wurde akzeptiert.")
+}
+Verbinde(Werte)
+{
+    Text := ""
+    for Index, Wert in Werte
+        Text .= (Index = 1 ? "" : "|") Wert
+    return Text
+}
+
+TestErstelleStatusAnzeige()
+{
+    global StatusAnzeigen, StartHinweisBestaetigt
+    PruefeMock(!StartHinweisBestaetigt, "Start vor Status freigegeben.")
+    StatusAnzeigen += 1
+    return 0
+}
+TestMsgBox(Text, Titel, Optionen)
+{
+    global Test, ErwarteterHinweis, StartMeldungen, StartHinweisBestaetigt, AblaufAktiv
+    PruefeMock(!Test.Kritisch, "Dialog in Critical.")
+    if InStr(Titel, "Vorbereitung - ") = 1
+    {
+        PruefeMock(Test.Startup && !StartHinweisBestaetigt && Text = ErwarteterHinweis, "Starttext/Startblockade falsch.")
+        StartMeldungen += 1
+        StarteAblauf("F5")
+        StarteAblauf("F6")
+        PruefeMock(!AblaufAktiv && !Test.Defaults.Length && !Test.Klicks.Length, "Startdialog sperrt Ablauffunktionen nicht.")
+    }
+    else
+        Test.Meldungen.Push(Text)
+    return "OK"
+}
+TestKeyWait(Taste)
+{
+    global Test, StartTasten, StartHinweisBestaetigt
+    PruefeMock(!Test.Kritisch, "KeyWait in Critical.")
+    if Test.Startup
+    {
+        PruefeMock(!StartHinweisBestaetigt, "Startfreigabe vor KeyWait.")
+        StartTasten.Push(Taste)
+    }
+}
+TestCritical(Modus)
+{
+    global Test
+    PruefeMock(!Test.Startup, "Ablauf vor Startbestaetigung betreten.")
+    Test.Kritisch := Modus = "On"
+}
+TestInputBox(Prompt, Titel, Optionen, Vorschlag)
+{
+    global Test
+    PruefeMock(!Test.Startup && !Test.Kritisch && Test.Queue.Length > 0, "Unerwarteter Dialog oder leere Mockqueue.")
+    Test.Defaults.Push(Vorschlag)
+    if Test.ProbeDialog
+    {
+        Test.ProbeDialog := false
+        Vorher := Test.Defaults.Length
+        StarteAblauf("F5")
+        PruefeMock(Test.Defaults.Length = Vorher, "F5 unterbricht F6-Dialog.")
+    }
+    return Test.Queue.RemoveAt(1)
+}
+TestWinActive(*)
+{
+    global Test
+    return Test.Fokus
+}
+TestMouseMove(X, Y, Tempo)
+{
+    global Test
+    PruefeMock(!Test.Kritisch, "Mausbewegung in Critical.")
+    Test.X := X, Test.Y := Y
+    Test.Events.Push("move@" X "," Y)
+}
+TestClick(X, Y, Taste)
+{
+    global Test
+    PruefeMock(!Test.Kritisch && X = Test.X && Y = Test.Y, "Move-/Click-Ziele verschieden oder Click in Critical.")
+    Test.Klicks.Push(Taste "@" X "," Y)
+    Test.Events.Push("click@" Taste "@" X "," Y)
+    if Test.ProbeKlick
+    {
+        Test.ProbeKlick := false
+        Vorher := Test.Defaults.Length
+        StarteAblauf("F6")
+        PruefeMock(Test.Defaults.Length = Vorher, "F6 unterbricht laufendes F5.")
+    }
+}
+TestPixelGetColor(X, Y)
+{
+    global Test, CubeVariantenPixel
+    PruefeMock(X = CubeVariantenPixel.x && Y = CubeVariantenPixel.y, "Falscher Pruefpixel.")
+    Test.Pixel.Push(X "," Y)
+    Test.Events.Push("pixel@" X "," Y)
+    if Test.PixelFehler
+        throw Error("Simulierter Pixel-Lesefehler.")
+    return Test.Farben.Length ? Test.Farben.RemoveAt(1) : 0xD8D5CF
+}
+TestSleep(Dauer)
+{
+    global Test
+    PruefeMock(!Test.Kritisch, "Sleep in Critical.")
+    Test.Events.Push("sleep@" Dauer)
+    if Dauer = 1000
+    {
+        Test.LangePausen += 1
+        if Test.Fokusverlust
+            Test.Fokus := 0
+    }
+}
+TestToolTip(*)
+{
+}
+TestCoordMode(*)
+{
+}
+TestSendMode(*)
+{
+}
+TestThread(*)
+{
+}
