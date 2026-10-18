@@ -45,7 +45,7 @@ Vor „Transfigure Item“ liest F5 für jedes Item einen Pixel an der Ziffer in
 | --- | --- | --- | --- |
 | 4K | 1839 / 366 | 1701 / 906 | 1680 / 1049 |
 | QHD | 1226 / 244 | 1134 / 604 | 1120 / 699 |
-| Full HD | 920 / 183 | 851 / 453 | 840 / 525 |
+| Full HD | 899 / 181 | 851 / 453 | 840 / 525 |
 
 F5 und F6 können nicht gleichzeitig ablaufen. Vor jeder Mausbewegung und jedem Klick wird geprüft, ob das beim Start erfasste Diablo-IV-Fenster noch im Vordergrund ist. Bei Fokusverlust stoppt die Folge. Die Eingabedialoge und die Taste `+` reagieren auch außerhalb des Spiels.
 

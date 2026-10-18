@@ -16,7 +16,7 @@ SendMode "Event"
 Thread "Interrupt", 0
 
 ; FullHD-Version: 1920 x 1080 Pixel.
-; Klickpunkte und Pruefpixel proportional aus der 4K-Vorlage skaliert.
+; Klickpunkte aus 4K skaliert; Pruefpixel im FullHD-Video gemessen.
 VersionsName := "FullHD (1920x1080)"
 
 ; HIER DEINEN TEXT FUER DAS POPUP EINTRAGEN:
@@ -90,7 +90,7 @@ CubePositionen := [
     {x: 353, y: 727}   ; Cube 3: 1000 ms warten, dann Linksklick
 ]
 CubePosition1Bei5 := {x: 840, y: 525} ; Transfigure Item bei Ziffer 5
-CubeVariantenPixel := {x: 920, y: 183} ; 4 = hell, 5 = dunkel
+CubeVariantenPixel := {x: 899, y: 181} ; 4 = hell, 5 = dunkel; in FullHD gemessen
 
 ; Sichtbar, solange das Skript laeuft; nimmt dem Spiel nicht den Fokus.
 StatusAnzeige := ErstelleStatusAnzeige()
