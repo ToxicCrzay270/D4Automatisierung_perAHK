@@ -2,6 +2,10 @@
 
 AutoHotkey-v2-Skripte für die Okkultistin und den Horadrischen Würfel in Diablo IV. Die Skripte bearbeiten bis zu 33 Inventarplätze mit festen Bildschirmkoordinaten.
 
+## Beispielvideo
+
+[Beispielvideo ansehen: So arbeitet das Skript (Medal.tv)](https://medal.tv/games/diablo-4/clips/nKFjRYUpU_McCvNA8?invite=cr-MSw5NU4sNTg0NTAzMDEz)
+
 ## Voraussetzungen und Start
 
 1. Windows und [AutoHotkey v2](https://www.autohotkey.com/) installieren. AutoHotkey v1 wird nicht unterstützt.
